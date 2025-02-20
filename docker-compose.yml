@@ -9,3 +9,8 @@ services:
       context: ./chown
       dockerfile: ./Dockerfile
       target: app_prod
+    # Deploy
+    environment:
+      UID: ${UID:-1000}
+      GID: ${GID:-0}
+      VOLUMES: ''
