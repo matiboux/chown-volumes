@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-if [ -z "$VOLUME_PATHS" ]; then
+if [ -z "$VOLUMES" ]; then
 	exit 0
 fi
 
@@ -11,7 +11,7 @@ while IFS= read -r VOLUME_PATH; do
 		chown -R ${UID:-1000}:0 ${VOLUME_PATH}
 	fi
 done <<EOF
-$VOLUME_PATHS
+$VOLUMES
 EOF
 
 exit 0

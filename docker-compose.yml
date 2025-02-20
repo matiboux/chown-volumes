@@ -12,4 +12,4 @@ services:
     # Deploy
     environment:
       UID: ${UID:-1000}
-      VOLUME_PATHS: ''
+      VOLUMES: ''
