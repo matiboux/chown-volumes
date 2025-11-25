@@ -1,0 +1,83 @@
+# Helper to set Docker registry credentials as GitHub Actions environment variables
+
+set_registry_credentials() {
+	# Inputs (from environment variables):
+	# - REGISTRY_URL (required)
+	#     The Docker registry URL (e.g., docker.io)
+	# - REGISTRY_USERNAME (required)
+	#     The Docker registry username
+	# - REGISTRY_TOKEN (required)
+	#     The Docker registry token or password
+	# - REGISTRY_NAMESPACE (optional)
+	#     The Docker registry namespace to use (e.g., organization or user)
+	#     (defaults to registry username if not set)
+	# - IMAGES_PREFIX (optional)
+	#     The prefix to use for image names (e.g., project name)
+	#     (defaults to repository name if not set)
+	# - REPOSITORY_PATH (required)
+	#     The full path of the repository (e.g., GitHub repository path)
+	# - REGISTRY_IMAGES_PREFIX_ENV_NAME (optional)
+	#     The environment variable name to save the images prefix as (e.g, DOCKERHUB_IMAGES_PREFIX)
+	# - REGISTRY_USERNAME_ENV_NAME (optional)
+	#     The environment variable name to save the registry username as (e.g, DOCKERHUB_USERNAME)
+	# - REGISTRY_TOKEN_ENV_NAME (optional)
+	#     The environment variable name to save the registry token as (e.g, DOCKERHUB_TOKEN)
+
+	# Outputs (environment variables):
+	# - ${REGISTRY_IMAGES_PREFIX_ENV_NAME}
+	#	  The Docker images prefix to use for pushing images
+	# - ${REGISTRY_USERNAME_ENV_NAME}
+	#	  The Docker registry username
+	# - ${REGISTRY_TOKEN_ENV_NAME}
+	#	  The Docker registry token or password
+
+	# Verify set_github_env helper is available
+	if ! command -v set_github_env >/dev/null 2>&1; then
+		echo "Error: set_github_env helper is not available" >&2
+		exit 1
+	fi
+
+	# Build REGISTRY_IMAGES_PREFIX variable
+	# Include registry URL
+	REGISTRY_URL="$(echo "${REGISTRY_URL}" | tr '[:upper:]' '[:lower:]')"
+	if [ -z "${REGISTRY_URL}" ]; then
+		echo "Error: REGISTRY_URL is empty" >&2
+		exit 1
+	fi
+	REGISTRY_IMAGES_PREFIX="${REGISTRY_URL}"
+	# Include registry namespace
+	if [ -n "${REGISTRY_NAMESPACE}" ] && [ "${REGISTRY_NAMESPACE}" != "0" ] && [ "${REGISTRY_NAMESPACE}" != "NONE" ]; then
+		if [ "${REGISTRY_NAMESPACE}" = "REGISTRY_USERNAME" ]; then
+			# Use the registry username as namespace
+			REGISTRY_NAMESPACE="${REGISTRY_USERNAME}"
+		elif [ "${REGISTRY_NAMESPACE}" = "REPOSITORY_OWNER" ] || [ "${REGISTRY_NAMESPACE}" = "1" ]; then
+			# Use the repository owner as namespace
+			REGISTRY_NAMESPACE="${REPOSITORY_OWNER}"
+		fi
+		REGISTRY_NAMESPACE="$(echo "${REGISTRY_NAMESPACE}" | tr '[:upper:]' '[:lower:]')"
+		REGISTRY_IMAGES_PREFIX="${REGISTRY_IMAGES_PREFIX}/${REGISTRY_NAMESPACE}"
+	fi
+	# Include images prefix (or default to repository name)
+	if [ -n "${IMAGES_PREFIX}" ]; then
+		IMAGES_PREFIX="$(echo "${IMAGES_PREFIX}" | tr '[:upper:]' '[:lower:]')"
+	else
+		IMAGES_PREFIX="$(echo "${REPOSITORY_PATH##*/}" | tr '[:upper:]' '[:lower:]')"
+	fi
+	REGISTRY_IMAGES_PREFIX="${REGISTRY_IMAGES_PREFIX}/${IMAGES_PREFIX}"
+
+	# Verify REGISTRY_USERNAME variable
+	if [ -z "${REGISTRY_USERNAME}" ]; then
+		echo "Error: Docker Hub registry username is not set" >&2
+		exit 1
+	fi
+
+	# Verify REGISTRY_TOKEN variable
+	if [ -z "${REGISTRY_TOKEN}" ]; then
+		echo "Error: Docker Hub registry token is not set" >&2
+		exit 1
+	fi
+
+	set_github_env "${REGISTRY_IMAGES_PREFIX_ENV_NAME}" "${REGISTRY_IMAGES_PREFIX}" 'true'
+	set_github_env "${REGISTRY_USERNAME_ENV_NAME}" "${REGISTRY_USERNAME}" 'true'
+	set_github_env "${REGISTRY_TOKEN_ENV_NAME}" "${REGISTRY_TOKEN}" 'true'
+}
