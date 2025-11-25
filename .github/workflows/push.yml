@@ -5,6 +5,7 @@ name: Push CD
 
 # Expected variables:
 # - DOCKERHUB_USERNAME
+# - IMAGES_NAME_PREFIX
 
 on:
 
@@ -40,7 +41,9 @@ concurrency:
 
 # Set environment variables for the workflow
 env:
-  REGISTRY: ghcr.io
+  DOCKERHUB_ENABLED: true
+  GITHUB_REGISTRY_ENABLED: true
+  IMAGES_PREFIX: ${{ vars.IMAGES_PREFIX }}
 
 jobs:
 
@@ -129,21 +132,6 @@ jobs:
 
       # Preparation steps
 
-      - name: Login to GitHub Docker registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Login to Docker Hub registry
-        # Only run if Docker Hub is configured
-        if: vars.DOCKERHUB_USERNAME
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Set DEPLOY_ENV
         env:
           GITHUB_REF: ${{ github.ref }}
@@ -174,47 +162,83 @@ jobs:
           echo "${DEPLOY_ENV}" >> $GITHUB_ENV
           echo 'GITHUB_ENV_EOF' >> $GITHUB_ENV
 
-      - name: Set IMAGES_PREFIX_GHCR (for GitHub Docker registry images)
+      - name: Set Docker Hub registry credentials
+        if: env.DOCKERHUB_ENABLED == 'true'
         env:
-          REGISTRY: ${{ env.REGISTRY }}
-          NAMESPACE: ${{ github.repository_owner }}
-          IMAGES_BASENAME: ${{ github.event.repository.name }}
+          REGISTRY_URL: docker.io
+          REGISTRY_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          REGISTRY_NAMESPACE: ${{ vars.DOCKERHUB_USERNAME }}
+          IMAGES_PREFIX: ${{ env.IMAGES_PREFIX }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          REPOSITORY_PATH: ${{ github.repository }}
         run: |
-          # Set IMAGES_PREFIX_GHCR environment variable
+          # Set Docker Hub registry credentials
+          set_registry_credentials \
+            'DOCKERHUB_IMAGES_PREFIX' \
+            'DOCKERHUB_USERNAME' \
+            'DOCKERHUB_TOKEN'
 
-          # Transform variables to lowercase
-          REGISTRY="$(echo "${REGISTRY}" | tr '[:upper:]' '[:lower:]')"
-          NAMESPACE="$(echo "${NAMESPACE}" | tr '[:upper:]' '[:lower:]')"
-          IMAGES_BASENAME="$(echo "${IMAGES_BASENAME}" | tr '[:upper:]' '[:lower:]')"
-
-          # Set IMAGES_PREFIX_GHCR environment variable
-          IMAGES_PREFIX_GHCR="${REGISTRY}/${NAMESPACE}/${IMAGES_BASENAME}"
-          echo "Set IMAGES_PREFIX_GHCR to '${IMAGES_PREFIX_GHCR}'"
-          echo 'IMAGES_PREFIX_GHCR<<GITHUB_ENV_EOF' >> $GITHUB_ENV
-          echo "${IMAGES_PREFIX_GHCR}" >> $GITHUB_ENV
-          echo 'GITHUB_ENV_EOF' >> $GITHUB_ENV
-
-      - name: Set IMAGES_PREFIX_DHCR (for Docker Hub registry images)
-        # Only run if Docker Hub is configured
-        if: vars.DOCKERHUB_USERNAME
+      - name: Set GitHub registry credentials
+        if: env.GITHUB_REGISTRY_ENABLED == 'true'
         env:
-          NAMESPACE: ${{ vars.DOCKERHUB_USERNAME }}
-          IMAGES_BASENAME: ${{ github.event.repository.name }}
+          REGISTRY_URL: ghcr.io
+          REGISTRY_USERNAME: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_NAMESPACE: ${{ github.repository_owner }}
+          IMAGES_PREFIX: ${{ env.IMAGES_PREFIX }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          REPOSITORY_PATH: ${{ github.repository }}
         run: |
-          # Set IMAGES_PREFIX_DHCR environment variable
+          # Set GitHub registry credentials
+          set_registry_credentials \
+            'GITHUB_REGISTRY_IMAGES_PREFIX' \
+            'GITHUB_REGISTRY_USERNAME' \
+            'GITHUB_REGISTRY_TOKEN'
 
-          # Transform variables to lowercase
-          NAMESPACE="$(echo "${NAMESPACE}" | tr '[:upper:]' '[:lower:]')"
-          IMAGES_BASENAME="$(echo "${IMAGES_BASENAME}" | tr '[:upper:]' '[:lower:]')"
-
-          # Set IMAGES_PREFIX_DHCR environment variable
-          IMAGES_PREFIX_DHCR="${NAMESPACE}/${IMAGES_BASENAME}"
-          echo "Set IMAGES_PREFIX_DHCR to '${IMAGES_PREFIX_DHCR}'"
-          echo 'IMAGES_PREFIX_DHCR<<GITHUB_ENV_EOF' >> $GITHUB_ENV
-          echo "${IMAGES_PREFIX_DHCR}" >> $GITHUB_ENV
-          echo 'GITHUB_ENV_EOF' >> $GITHUB_ENV
+      - name: Set custom registry credentials
+        if: vars.REGISTRY_URL != ''
+        env:
+          REGISTRY_URL: ${{ vars.REGISTRY_URL }}
+          REGISTRY_USERNAME: ${{ vars.REGISTRY_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+          REGISTRY_NAMESPACE: ${{ vars.REGISTRY_NAMESPACE }}
+          IMAGES_PREFIX: ${{ env.IMAGES_PREFIX }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+          REPOSITORY_PATH: ${{ github.repository }}
+        run: |
+          # Set custom registry credentials
+          set_registry_credentials \
+            'CUSTOM_REGISTRY_IMAGES_PREFIX' \
+            'CUSTOM_REGISTRY_USERNAME' \
+            'CUSTOM_REGISTRY_TOKEN'
 
       # Execution steps
+
+      - name: Login to Docker Hub registry
+        # Only run if Docker Hub is configured
+        if: env.DOCKERHUB_USERNAME
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ env.DOCKERHUB_USERNAME }}
+          password: ${{ env.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub registry
+        if: env.GITHUB_REGISTRY_USERNAME
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ env.GITHUB_REGISTRY_USERNAME }}
+          password: ${{ env.GITHUB_REGISTRY_TOKEN }}
+
+      - name: Login to custom registry
+        if: env.CUSTOM_REGISTRY_USERNAME
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.REGISTRY_URL }}
+          username: ${{ env.CUSTOM_REGISTRY_USERNAME }}
+          password: ${{ env.CUSTOM_REGISTRY_TOKEN }}
 
       - name: Build for production
         env:
@@ -231,7 +255,7 @@ jobs:
         env:
           IMAGES_PREFIX: 'app'
           IMAGES_TAG: ${{ github.sha }}
-          NEW_IMAGES_PREFIX: ${{ env.IMAGES_PREFIX_GHCR }}
+          NEW_IMAGES_PREFIX: ${{ env.GITHUB_REGISTRY_IMAGES_PREFIX }}
           NEW_IMAGES_TAG: ${{ github.sha }}
         run: |
           # docker tag for each image
@@ -242,7 +266,7 @@ jobs:
 
       - name: Push Docker images to GitHub Docker registry (tag commit SHA)
         env:
-          IMAGES_PREFIX: ${{ env.IMAGES_PREFIX_GHCR }}
+          IMAGES_PREFIX: ${{ env.GITHUB_REGISTRY_IMAGES_PREFIX }}
           IMAGES_TAG: ${{ github.sha }}
         run: |
           # docker compose push
@@ -257,7 +281,7 @@ jobs:
         env:
           IMAGES_PREFIX: 'app'
           IMAGES_TAG: ${{ github.sha }}
-          NEW_IMAGES_PREFIX: ${{ env.IMAGES_PREFIX_GHCR }}
+          NEW_IMAGES_PREFIX: ${{ env.GITHUB_REGISTRY_IMAGES_PREFIX }}
           NEW_IMAGES_TAG: latest
         run: |
           # docker tag for each image
@@ -270,7 +294,7 @@ jobs:
         # Only run in production
         if: env.DEPLOY_ENV == 'PROD'
         env:
-          IMAGES_PREFIX: ${{ env.IMAGES_PREFIX_GHCR }}
+          IMAGES_PREFIX: ${{ env.GITHUB_REGISTRY_IMAGES_PREFIX }}
           IMAGES_TAG: latest
         run: |
           # docker compose push
@@ -285,7 +309,7 @@ jobs:
         env:
           IMAGES_PREFIX: 'app'
           IMAGES_TAG: ${{ github.sha }}
-          NEW_IMAGES_PREFIX: ${{ env.IMAGES_PREFIX_DHCR }}
+          NEW_IMAGES_PREFIX: ${{ env.DOCKERHUB_IMAGES_PREFIX }}
           NEW_IMAGES_TAG: ${{ github.sha }}
         run: |
           # docker tag for each image
@@ -298,7 +322,7 @@ jobs:
         # Only run if Docker Hub is configured
         if: vars.DOCKERHUB_USERNAME
         env:
-          IMAGES_PREFIX: ${{ env.IMAGES_PREFIX_DHCR }}
+          IMAGES_PREFIX: ${{ env.DOCKERHUB_IMAGES_PREFIX }}
           IMAGES_TAG: ${{ github.sha }}
         run: |
           # docker compose push
@@ -313,7 +337,7 @@ jobs:
         env:
           IMAGES_PREFIX: 'app'
           IMAGES_TAG: ${{ github.sha }}
-          NEW_IMAGES_PREFIX: ${{ env.IMAGES_PREFIX_DHCR }}
+          NEW_IMAGES_PREFIX: ${{ env.DOCKERHUB_IMAGES_PREFIX }}
           NEW_IMAGES_TAG: latest
         run: |
           # docker tag for each image
@@ -326,7 +350,7 @@ jobs:
         # Only run in production if Docker Hub is configured
         if: env.DEPLOY_ENV == 'PROD' && vars.DOCKERHUB_USERNAME
         env:
-          IMAGES_PREFIX: ${{ env.IMAGES_PREFIX_DHCR }}
+          IMAGES_PREFIX: ${{ env.DOCKERHUB_IMAGES_PREFIX }}
           IMAGES_TAG: latest
         run: |
           # docker compose push
