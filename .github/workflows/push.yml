@@ -1,4 +1,10 @@
-name: Push Docker CD
+name: Push CD
+
+# Expected secrets:
+# - DOCKERHUB_TOKEN
+
+# Expected variables:
+# - DOCKERHUB_USERNAME
 
 on:
 
@@ -13,12 +19,13 @@ on:
       - 'docker-compose.yml'
       - '.env'
       # Application files
-      - 'chown/**'
+      - 'chown-command.sh'
+      - 'Dockerfile'
 
   # Run on manual triggers
   workflow_dispatch:
 
-# Set GITHUB_TOKEN permissions for the workflow
+# Set default GITHUB_TOKEN permissions for the workflow
 permissions:
   contents: read
 
@@ -27,21 +34,21 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Set environment variables for the workflow
+env:
+  REGISTRY: ghcr.io
+
 jobs:
 
-  # Push Docker job
+  # Build & Push job
   push:
-    name: Push Docker
+    name: Build & Push
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     # Set GITHUB_TOKEN permissions for the job
     permissions:
       packages: write
-
-    # Set environment variables for the job
-    env:
-      REGISTRY: ghcr.io
 
     steps:
 
