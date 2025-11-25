@@ -47,8 +47,9 @@ concurrency:
 
 # Set environment variables for the workflow
 env:
-  DOCKER_REGISTRY_ENABLED: ${{ vars.DOCKER_REGISTRY_ENABLED == 'true' }}
+  DOCKER_REGISTRY_ENABLED: ${{ vars.DOCKER_REGISTRY_ENABLED == 'true' || (!vars.DOCKER_REGISTRY_ENABLED && vars.DOCKER_REGISTRY_USERNAME != '') }}
   GITHUB_REGISTRY_ENABLED: ${{ vars.GITHUB_REGISTRY_ENABLED == 'true' }}
+  CUSTOM_REGISTRY_ENABLED: ${{ vars.CUSTOM_REGISTRY_ENABLED == 'true' || (!vars.CUSTOM_REGISTRY_ENABLED && vars.CUSTOM_REGISTRY_URL != '') }}
   IMAGES_PREFIX: ${{ vars.IMAGES_PREFIX }}
 
 jobs:
@@ -205,7 +206,7 @@ jobs:
             'GITHUB_REGISTRY_TOKEN'
 
       - name: Set custom registry credentials
-        if: vars.CUSTOM_REGISTRY_URL != ''
+        if: env.CUSTOM_REGISTRY_ENABLED
         env:
           REGISTRY_URL: ${{ vars.CUSTOM_REGISTRY_URL }}
           REGISTRY_USERNAME: ${{ vars.CUSTOM_REGISTRY_USERNAME }}
