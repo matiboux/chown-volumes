@@ -2,15 +2,15 @@ name: Push CD
 
 # Expected secrets:
 # - DHCR_TOKEN
-# - REGISTRY_TOKEN
+# - CUSTOM_CR_TOKEN
 
 # Expected variables:
 # - DHCR_ENABLED
 # - DHCR_USERNAME
 # - GHCR_ENABLED
-# - REGISTRY_URL
-# - REGISTRY_USERNAME
-# - REGISTRY_NAMESPACE
+# - CUSTOM_CR_URL
+# - CUSTOM_CR_USERNAME
+# - CUSTOM_CR_NAMESPACE
 # - IMAGES_PREFIX
 
 on:
@@ -49,7 +49,7 @@ concurrency:
 env:
   DHCR_ENABLED: ${{ vars.DHCR_ENABLED == 'true' || (!vars.DHCR_ENABLED && vars.DHCR_USERNAME != '') }}
   GHCR_ENABLED: ${{ vars.GHCR_ENABLED == 'true' }}
-  REGISTRY_ENABLED: ${{ vars.REGISTRY_ENABLED == 'true' || (!vars.REGISTRY_ENABLED && vars.REGISTRY_URL != '') }}
+  CUSTOM_CR_ENABLED: ${{ vars.CUSTOM_CR_ENABLED == 'true' || (!vars.CUSTOM_CR_ENABLED && vars.CUSTOM_CR_URL != '') }}
   IMAGES_PREFIX: ${{ vars.IMAGES_PREFIX }}
 
 jobs:
@@ -150,12 +150,12 @@ jobs:
             'GHCR_TOKEN'
 
       - name: Set custom registry credentials
-        if: env.REGISTRY_ENABLED == 'true'
+        if: env.CUSTOM_CR_ENABLED == 'true'
         env:
-          REGISTRY_URL: ${{ vars.REGISTRY_URL }}
-          REGISTRY_USERNAME: ${{ vars.REGISTRY_USERNAME }}
-          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
-          REGISTRY_NAMESPACE: ${{ vars.REGISTRY_NAMESPACE }}
+          REGISTRY_URL: ${{ vars.CUSTOM_CR_URL }}
+          REGISTRY_USERNAME: ${{ vars.CUSTOM_CR_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.CUSTOM_CR_TOKEN }}
+          REGISTRY_NAMESPACE: ${{ vars.CUSTOM_CR_NAMESPACE }}
           IMAGES_PREFIX: ${{ env.IMAGES_PREFIX }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           REPOSITORY_PATH: ${{ github.repository }}
@@ -167,10 +167,10 @@ jobs:
           . ./.github/workflows/scripts/set_registry_credentials.sh
 
           set_registry_credentials \
-            'REGISTRY_URL' \
-            'REGISTRY_IMAGES_PREFIX' \
-            'REGISTRY_USERNAME' \
-            'REGISTRY_TOKEN'
+            'CUSTOM_CR_URL' \
+            'CUSTOM_CR_IMAGES_PREFIX' \
+            'CUSTOM_CR_USERNAME' \
+            'CUSTOM_CR_TOKEN'
 
       # Execution steps
 
@@ -191,12 +191,12 @@ jobs:
           password: ${{ env.GHCR_TOKEN }}
 
       - name: Login to custom registry
-        if: env.REGISTRY_URL
+        if: env.CUSTOM_CR_URL
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY_URL }}
-          username: ${{ env.REGISTRY_USERNAME }}
-          password: ${{ env.REGISTRY_TOKEN }}
+          registry: ${{ env.CUSTOM_CR_URL }}
+          username: ${{ env.CUSTOM_CR_USERNAME }}
+          password: ${{ env.CUSTOM_CR_TOKEN }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -209,7 +209,7 @@ jobs:
           DEPLOY_ENV: ${{ env.DEPLOY_ENV }}
           DHCR_IMAGES_PREFIX: ${{ env.DHCR_IMAGES_PREFIX }}
           GHCR_IMAGES_PREFIX: ${{ env.GHCR_IMAGES_PREFIX }}
-          REGISTRY_IMAGES_PREFIX: ${{ env.REGISTRY_IMAGES_PREFIX }}
+          CUSTOM_CR_IMAGES_PREFIX: ${{ env.CUSTOM_CR_IMAGES_PREFIX }}
           GITHUB_SHA: ${{ github.sha }}
         run: |
           # Set Docker image tags
@@ -233,10 +233,10 @@ jobs:
           fi
 
           # Include image tag for custom registry
-          if [ -n "${REGISTRY_IMAGES_PREFIX}" ]; then
-            IMAGE_TAGS="${IMAGE_TAGS},${REGISTRY_IMAGES_PREFIX}:${GITHUB_SHA}"
+          if [ -n "${CUSTOM_CR_IMAGES_PREFIX}" ]; then
+            IMAGE_TAGS="${IMAGE_TAGS},${CUSTOM_CR_IMAGES_PREFIX}:${GITHUB_SHA}"
             if [ "${DEPLOY_ENV}" = "PROD" ]; then
-              IMAGE_TAGS="${IMAGE_TAGS},${REGISTRY_IMAGES_PREFIX}:latest"
+              IMAGE_TAGS="${IMAGE_TAGS},${CUSTOM_CR_IMAGES_PREFIX}:latest"
             fi
           fi
 
