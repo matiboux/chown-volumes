@@ -199,7 +199,7 @@ jobs:
             'GITHUB_REGISTRY_TOKEN'
 
       - name: Set custom registry credentials
-        if: vars.REGISTRY_URL != ''
+        if: vars.CUSTOM_REGISTRY_URL != ''
         env:
           REGISTRY_URL: ${{ vars.CUSTOM_REGISTRY_URL }}
           REGISTRY_USERNAME: ${{ vars.CUSTOM_REGISTRY_USERNAME }}
