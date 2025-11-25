@@ -71,15 +71,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Dependencies steps
-
-      - name: Load helper scripts
-        run: |
-          # Load helper scripts
-
-          . ./.github/workflows/scripts/set_github_env.sh
-          . ./.github/workflows/scripts/set_registry_credentials.sh
-
       # Preparation steps
 
       - name: Set DEPLOY_ENV
@@ -124,6 +115,11 @@ jobs:
           REPOSITORY_PATH: ${{ github.repository }}
         run: |
           # Set Docker Hub registry credentials
+
+          # Load helper scripts
+          . ./.github/workflows/scripts/set_github_env.sh
+          . ./.github/workflows/scripts/set_registry_credentials.sh
+
           set_registry_credentials \
             'DOCKER_REGISTRY_URL' \
             'DOCKER_REGISTRY_IMAGES_PREFIX' \
@@ -142,6 +138,11 @@ jobs:
           REPOSITORY_PATH: ${{ github.repository }}
         run: |
           # Set GitHub registry credentials
+
+          # Load helper scripts
+          . ./.github/workflows/scripts/set_github_env.sh
+          . ./.github/workflows/scripts/set_registry_credentials.sh
+
           set_registry_credentials \
             'GITHUB_REGISTRY_URL' \
             'GITHUB_REGISTRY_IMAGES_PREFIX' \
@@ -160,6 +161,11 @@ jobs:
           REPOSITORY_PATH: ${{ github.repository }}
         run: |
           # Set custom registry credentials
+
+          # Load helper scripts
+          . ./.github/workflows/scripts/set_github_env.sh
+          . ./.github/workflows/scripts/set_registry_credentials.sh
+
           set_registry_credentials \
             'CUSTOM_REGISTRY_URL' \
             'CUSTOM_REGISTRY_IMAGES_PREFIX' \
