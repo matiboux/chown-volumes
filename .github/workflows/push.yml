@@ -120,6 +120,13 @@ jobs:
           yq --version
           echo '::endgroup::'
 
+      - name: Load helper scripts
+        run: |
+          # Load helper scripts
+
+          . ./.github/workflows/scripts/set_github_env.sh
+          . ./.github/workflows/scripts/set_registry_credentials.sh
+
       # Preparation steps
 
       - name: Login to GitHub Docker registry
