@@ -24,6 +24,10 @@ on:
 
   # Run on manual triggers
   workflow_dispatch:
+    inputs:
+      deploy_env:
+        description: 'Deployment environment (e.g. prod, staging)'
+        type: string
 
 # Set default GITHUB_TOKEN permissions for the workflow
 permissions:
@@ -133,16 +137,31 @@ jobs:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Set DEPLOY_ENV environment variable
+      - name: Set DEPLOY_ENV
         env:
           GITHUB_REF: ${{ github.ref }}
+          DEPLOY_ENV: ${{ github.event.inputs.deploy_env }}
         run: |
           # Set DEPLOY_ENV environment variable
-          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+
+          if [ -n "${DEPLOY_ENV}" ]; then
+            # Sanitize DEPLOY_ENV value:
+            # - Strip leading & trailing whitespace
+            # - Remove punctuation
+            # - Convert to uppercase
+            # - Replace spaces with underscores
+            DEPLOY_ENV="$(
+              echo "${DEPLOY_ENV}" \
+              | xargs \
+              | tr -d '[:punct:]' \
+              | tr '[:lower:] ' '[:upper:]_'
+            )"
+          elif [ "${GITHUB_REF}" = "refs/heads/main" ]; then
             DEPLOY_ENV="PROD"
           else
-            DEPLOY_ENV="DEV"
+            DEPLOY_ENV="STAGING"
           fi
+
           echo "Set DEPLOY_ENV to '${DEPLOY_ENV}'"
           echo 'DEPLOY_ENV<<GITHUB_ENV_EOF' >> $GITHUB_ENV
           echo "${DEPLOY_ENV}" >> $GITHUB_ENV
