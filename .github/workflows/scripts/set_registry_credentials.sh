@@ -21,13 +21,13 @@ set_registry_credentials() {
 
 	# Inputs (arguments):
 	# - registry_url_env_name
-	#     The environment variable name to save the registry URL as (e.g, DOCKER_REGISTRY_URL)
+	#     The environment variable name to save the registry URL as (e.g, DHCR_URL)
 	# - registry_images_prefix_env_name
-	#     The environment variable name to save the images prefix as (e.g, DOCKER_REGISTRY_IMAGES_PREFIX)
+	#     The environment variable name to save the images prefix as (e.g, DHCR_IMAGES_PREFIX)
 	# - registry_username_env_name
-	#     The environment variable name to save the registry username as (e.g, DOCKER_REGISTRY_USERNAME)
+	#     The environment variable name to save the registry username as (e.g, DHCR_USERNAME)
 	# - registry_token_env_name
-	#     The environment variable name to save the registry token as (e.g, DOCKER_REGISTRY_TOKEN)
+	#     The environment variable name to save the registry token as (e.g, DHCR_TOKEN)
 
 	# Outputs (environment variables):
 	# - ${registry_images_prefix_env_name}

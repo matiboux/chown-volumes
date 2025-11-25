@@ -1,16 +1,16 @@
 name: Push CD
 
 # Expected secrets:
-# - DOCKER_REGISTRY_TOKEN
-# - CUSTOM_REGISTRY_TOKEN
+# - DHCR_TOKEN
+# - REGISTRY_TOKEN
 
 # Expected variables:
-# - DOCKER_REGISTRY_ENABLED
-# - DOCKER_REGISTRY_USERNAME
-# - GITHUB_REGISTRY_ENABLED
-# - CUSTOM_REGISTRY_URL
-# - CUSTOM_REGISTRY_USERNAME
-# - CUSTOM_REGISTRY_NAMESPACE
+# - DHCR_ENABLED
+# - DHCR_USERNAME
+# - GHCR_ENABLED
+# - REGISTRY_URL
+# - REGISTRY_USERNAME
+# - REGISTRY_NAMESPACE
 # - IMAGES_PREFIX
 
 on:
@@ -47,9 +47,9 @@ concurrency:
 
 # Set environment variables for the workflow
 env:
-  DOCKER_REGISTRY_ENABLED: ${{ vars.DOCKER_REGISTRY_ENABLED == 'true' || (!vars.DOCKER_REGISTRY_ENABLED && vars.DOCKER_REGISTRY_USERNAME != '') }}
-  GITHUB_REGISTRY_ENABLED: ${{ vars.GITHUB_REGISTRY_ENABLED == 'true' }}
-  CUSTOM_REGISTRY_ENABLED: ${{ vars.CUSTOM_REGISTRY_ENABLED == 'true' || (!vars.CUSTOM_REGISTRY_ENABLED && vars.CUSTOM_REGISTRY_URL != '') }}
+  DHCR_ENABLED: ${{ vars.DHCR_ENABLED == 'true' || (!vars.DHCR_ENABLED && vars.DHCR_USERNAME != '') }}
+  GHCR_ENABLED: ${{ vars.GHCR_ENABLED == 'true' }}
+  REGISTRY_ENABLED: ${{ vars.REGISTRY_ENABLED == 'true' || (!vars.REGISTRY_ENABLED && vars.REGISTRY_URL != '') }}
   IMAGES_PREFIX: ${{ vars.IMAGES_PREFIX }}
 
 jobs:
@@ -104,12 +104,12 @@ jobs:
           echo 'GITHUB_ENV_EOF' >> $GITHUB_ENV
 
       - name: Set Docker Hub registry credentials
-        if: env.DOCKER_REGISTRY_ENABLED == 'true'
+        if: env.DHCR_ENABLED == 'true'
         env:
           REGISTRY_URL: docker.io
-          REGISTRY_USERNAME: ${{ vars.DOCKER_REGISTRY_USERNAME }}
-          REGISTRY_TOKEN: ${{ secrets.DOCKER_REGISTRY_TOKEN }}
-          REGISTRY_NAMESPACE: ${{ vars.DOCKER_REGISTRY_USERNAME }}
+          REGISTRY_USERNAME: ${{ vars.DHCR_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.DHCR_TOKEN }}
+          REGISTRY_NAMESPACE: ${{ vars.DHCR_USERNAME }}
           IMAGES_PREFIX: ${{ env.IMAGES_PREFIX }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           REPOSITORY_PATH: ${{ github.repository }}
@@ -121,13 +121,13 @@ jobs:
           . ./.github/workflows/scripts/set_registry_credentials.sh
 
           set_registry_credentials \
-            'DOCKER_REGISTRY_URL' \
-            'DOCKER_REGISTRY_IMAGES_PREFIX' \
-            'DOCKER_REGISTRY_USERNAME' \
-            'DOCKER_REGISTRY_TOKEN'
+            'DHCR_URL' \
+            'DHCR_IMAGES_PREFIX' \
+            'DHCR_USERNAME' \
+            'DHCR_TOKEN'
 
       - name: Set GitHub registry credentials
-        if: env.GITHUB_REGISTRY_ENABLED == 'true'
+        if: env.GHCR_ENABLED == 'true'
         env:
           REGISTRY_URL: ghcr.io
           REGISTRY_USERNAME: ${{ github.actor }}
@@ -144,18 +144,18 @@ jobs:
           . ./.github/workflows/scripts/set_registry_credentials.sh
 
           set_registry_credentials \
-            'GITHUB_REGISTRY_URL' \
-            'GITHUB_REGISTRY_IMAGES_PREFIX' \
-            'GITHUB_REGISTRY_USERNAME' \
-            'GITHUB_REGISTRY_TOKEN'
+            'GHCR_URL' \
+            'GHCR_IMAGES_PREFIX' \
+            'GHCR_USERNAME' \
+            'GHCR_TOKEN'
 
       - name: Set custom registry credentials
-        if: env.CUSTOM_REGISTRY_ENABLED == 'true'
+        if: env.REGISTRY_ENABLED == 'true'
         env:
-          REGISTRY_URL: ${{ vars.CUSTOM_REGISTRY_URL }}
-          REGISTRY_USERNAME: ${{ vars.CUSTOM_REGISTRY_USERNAME }}
-          REGISTRY_TOKEN: ${{ secrets.CUSTOM_REGISTRY_TOKEN }}
-          REGISTRY_NAMESPACE: ${{ vars.CUSTOM_REGISTRY_NAMESPACE }}
+          REGISTRY_URL: ${{ vars.REGISTRY_URL }}
+          REGISTRY_USERNAME: ${{ vars.REGISTRY_USERNAME }}
+          REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+          REGISTRY_NAMESPACE: ${{ vars.REGISTRY_NAMESPACE }}
           IMAGES_PREFIX: ${{ env.IMAGES_PREFIX }}
           REPOSITORY_OWNER: ${{ github.repository_owner }}
           REPOSITORY_PATH: ${{ github.repository }}
@@ -167,36 +167,36 @@ jobs:
           . ./.github/workflows/scripts/set_registry_credentials.sh
 
           set_registry_credentials \
-            'CUSTOM_REGISTRY_URL' \
-            'CUSTOM_REGISTRY_IMAGES_PREFIX' \
-            'CUSTOM_REGISTRY_USERNAME' \
-            'CUSTOM_REGISTRY_TOKEN'
+            'REGISTRY_URL' \
+            'REGISTRY_IMAGES_PREFIX' \
+            'REGISTRY_USERNAME' \
+            'REGISTRY_TOKEN'
 
       # Execution steps
 
       - name: Login to Docker Hub registry
-        if: env.DOCKER_REGISTRY_URL
+        if: env.DHCR_URL
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.DOCKER_REGISTRY_URL }}
-          username: ${{ env.DOCKER_REGISTRY_USERNAME }}
-          password: ${{ env.DOCKER_REGISTRY_TOKEN }}
+          registry: ${{ env.DHCR_URL }}
+          username: ${{ env.DHCR_USERNAME }}
+          password: ${{ env.DHCR_TOKEN }}
 
       - name: Login to GitHub registry
-        if: env.GITHUB_REGISTRY_URL
+        if: env.GHCR_URL
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.GITHUB_REGISTRY_URL }}
-          username: ${{ env.GITHUB_REGISTRY_USERNAME }}
-          password: ${{ env.GITHUB_REGISTRY_TOKEN }}
+          registry: ${{ env.GHCR_URL }}
+          username: ${{ env.GHCR_USERNAME }}
+          password: ${{ env.GHCR_TOKEN }}
 
       - name: Login to custom registry
-        if: env.CUSTOM_REGISTRY_URL
+        if: env.REGISTRY_URL
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.CUSTOM_REGISTRY_URL }}
-          username: ${{ env.CUSTOM_REGISTRY_USERNAME }}
-          password: ${{ env.CUSTOM_REGISTRY_TOKEN }}
+          registry: ${{ env.REGISTRY_URL }}
+          username: ${{ env.REGISTRY_USERNAME }}
+          password: ${{ env.REGISTRY_TOKEN }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -207,9 +207,9 @@ jobs:
       - name: Set Docker image tags
         env:
           DEPLOY_ENV: ${{ env.DEPLOY_ENV }}
-          DOCKER_REGISTRY_IMAGES_PREFIX: ${{ env.DOCKER_REGISTRY_IMAGES_PREFIX }}
-          GITHUB_REGISTRY_IMAGES_PREFIX: ${{ env.GITHUB_REGISTRY_IMAGES_PREFIX }}
-          CUSTOM_REGISTRY_IMAGES_PREFIX: ${{ env.CUSTOM_REGISTRY_IMAGES_PREFIX }}
+          DHCR_IMAGES_PREFIX: ${{ env.DHCR_IMAGES_PREFIX }}
+          GHCR_IMAGES_PREFIX: ${{ env.GHCR_IMAGES_PREFIX }}
+          REGISTRY_IMAGES_PREFIX: ${{ env.REGISTRY_IMAGES_PREFIX }}
           GITHUB_SHA: ${{ github.sha }}
         run: |
           # Set Docker image tags
@@ -217,26 +217,26 @@ jobs:
           IMAGE_TAGS=''
 
           # Include image tag for Docker Hub registry
-          if [ -n "${DOCKER_REGISTRY_IMAGES_PREFIX}" ]; then
-            IMAGE_TAGS="${IMAGE_TAGS},${DOCKER_REGISTRY_IMAGES_PREFIX}:${GITHUB_SHA}"
+          if [ -n "${DHCR_IMAGES_PREFIX}" ]; then
+            IMAGE_TAGS="${IMAGE_TAGS},${DHCR_IMAGES_PREFIX}:${GITHUB_SHA}"
             if [ "${DEPLOY_ENV}" = "PROD" ]; then
-              IMAGE_TAGS="${IMAGE_TAGS},${DOCKER_REGISTRY_IMAGES_PREFIX}:latest"
+              IMAGE_TAGS="${IMAGE_TAGS},${DHCR_IMAGES_PREFIX}:latest"
             fi
           fi
 
           # Include image tag for GitHub registry
-          if [ -n "${GITHUB_REGISTRY_IMAGES_PREFIX}" ]; then
-            IMAGE_TAGS="${IMAGE_TAGS},${GITHUB_REGISTRY_IMAGES_PREFIX}:${GITHUB_SHA}"
+          if [ -n "${GHCR_IMAGES_PREFIX}" ]; then
+            IMAGE_TAGS="${IMAGE_TAGS},${GHCR_IMAGES_PREFIX}:${GITHUB_SHA}"
             if [ "${DEPLOY_ENV}" = "PROD" ]; then
-              IMAGE_TAGS="${IMAGE_TAGS},${GITHUB_REGISTRY_IMAGES_PREFIX}:latest"
+              IMAGE_TAGS="${IMAGE_TAGS},${GHCR_IMAGES_PREFIX}:latest"
             fi
           fi
 
           # Include image tag for custom registry
-          if [ -n "${CUSTOM_REGISTRY_IMAGES_PREFIX}" ]; then
-            IMAGE_TAGS="${IMAGE_TAGS},${CUSTOM_REGISTRY_IMAGES_PREFIX}:${GITHUB_SHA}"
+          if [ -n "${REGISTRY_IMAGES_PREFIX}" ]; then
+            IMAGE_TAGS="${IMAGE_TAGS},${REGISTRY_IMAGES_PREFIX}:${GITHUB_SHA}"
             if [ "${DEPLOY_ENV}" = "PROD" ]; then
-              IMAGE_TAGS="${IMAGE_TAGS},${CUSTOM_REGISTRY_IMAGES_PREFIX}:latest"
+              IMAGE_TAGS="${IMAGE_TAGS},${REGISTRY_IMAGES_PREFIX}:latest"
             fi
           fi
 
