@@ -1,7 +1,7 @@
 # Helper to set Docker registry credentials as GitHub Actions environment variables
 
 set_registry_credentials() {
-	# Inputs (from environment variables):
+	# Inputs (environment variables):
 	# - REGISTRY_URL (required)
 	#     The Docker registry URL (e.g., docker.io)
 	# - REGISTRY_USERNAME (required)
@@ -16,19 +16,21 @@ set_registry_credentials() {
 	#     (defaults to repository name if not set)
 	# - REPOSITORY_PATH (required)
 	#     The full path of the repository (e.g., GitHub repository path)
-	# - REGISTRY_IMAGES_PREFIX_ENV_NAME (optional)
+
+	# Inputs (arguments):
+	# - registry_images_prefix_env_name
 	#     The environment variable name to save the images prefix as (e.g, DOCKERHUB_IMAGES_PREFIX)
-	# - REGISTRY_USERNAME_ENV_NAME (optional)
+	# - registry_username_env_name
 	#     The environment variable name to save the registry username as (e.g, DOCKERHUB_USERNAME)
-	# - REGISTRY_TOKEN_ENV_NAME (optional)
+	# - registry_token_env_name
 	#     The environment variable name to save the registry token as (e.g, DOCKERHUB_TOKEN)
 
 	# Outputs (environment variables):
-	# - ${REGISTRY_IMAGES_PREFIX_ENV_NAME}
+	# - ${registry_images_prefix_env_name}
 	#	  The Docker images prefix to use for pushing images
-	# - ${REGISTRY_USERNAME_ENV_NAME}
+	# - ${registry_username_env_name}
 	#	  The Docker registry username
-	# - ${REGISTRY_TOKEN_ENV_NAME}
+	# - ${registry_token_env_name}
 	#	  The Docker registry token or password
 
 	# Verify set_github_env helper is available
@@ -36,6 +38,10 @@ set_registry_credentials() {
 		echo "Error: set_github_env helper is not available" >&2
 		exit 1
 	fi
+
+	local registry_images_prefix_env_name="$1"
+	local registry_username_env_name="$2"
+	local registry_token_env_name="$3"
 
 	# Build REGISTRY_IMAGES_PREFIX variable
 	# Include registry URL
@@ -77,7 +83,7 @@ set_registry_credentials() {
 		exit 1
 	fi
 
-	set_github_env "${REGISTRY_IMAGES_PREFIX_ENV_NAME}" "${REGISTRY_IMAGES_PREFIX}" 'true'
-	set_github_env "${REGISTRY_USERNAME_ENV_NAME}" "${REGISTRY_USERNAME}" 'true'
-	set_github_env "${REGISTRY_TOKEN_ENV_NAME}" "${REGISTRY_TOKEN}" 'true'
+	set_github_env "${registry_images_prefix_env_name}" "${REGISTRY_IMAGES_PREFIX}" 'true'
+	set_github_env "${registry_username_env_name}" "${REGISTRY_USERNAME}" 'true'
+	set_github_env "${registry_token_env_name}" "${REGISTRY_TOKEN}" 'true'
 }
