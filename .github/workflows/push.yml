@@ -2,10 +2,16 @@ name: Push CD
 
 # Expected secrets:
 # - DOCKER_REGISTRY_TOKEN
+# - CUSTOM_REGISTRY_TOKEN
 
 # Expected variables:
+# - DOCKER_REGISTRY_ENABLED
 # - DOCKER_REGISTRY_USERNAME
-# - IMAGES_NAME_PREFIX
+# - GITHUB_REGISTRY_ENABLED
+# - CUSTOM_REGISTRY_URL
+# - CUSTOM_REGISTRY_USERNAME
+# - CUSTOM_REGISTRY_NAMESPACE
+# - IMAGES_PREFIX
 
 on:
 
@@ -41,8 +47,8 @@ concurrency:
 
 # Set environment variables for the workflow
 env:
-  DOCKER_REGISTRY_ENABLED: true
-  GITHUB_REGISTRY_ENABLED: true
+  DOCKER_REGISTRY_ENABLED: ${{ vars.DOCKER_REGISTRY_ENABLED == 'true' }}
+  GITHUB_REGISTRY_ENABLED: ${{ vars.GITHUB_REGISTRY_ENABLED == 'true' }}
   IMAGES_PREFIX: ${{ vars.IMAGES_PREFIX }}
 
 jobs:
@@ -163,7 +169,7 @@ jobs:
           echo 'GITHUB_ENV_EOF' >> $GITHUB_ENV
 
       - name: Set Docker Hub registry credentials
-        if: env.DOCKER_REGISTRY_ENABLED == 'true'
+        if: env.DOCKER_REGISTRY_ENABLED
         env:
           REGISTRY_URL: docker.io
           REGISTRY_USERNAME: ${{ vars.DOCKER_REGISTRY_USERNAME }}
@@ -181,7 +187,7 @@ jobs:
             'DOCKER_REGISTRY_TOKEN'
 
       - name: Set GitHub registry credentials
-        if: env.GITHUB_REGISTRY_ENABLED == 'true'
+        if: env.GITHUB_REGISTRY_ENABLED
         env:
           REGISTRY_URL: ghcr.io
           REGISTRY_USERNAME: ${{ github.actor }}
