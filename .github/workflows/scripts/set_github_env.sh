@@ -7,7 +7,8 @@ set_github_env() {
 	# Inputs (arguments):
 	# - var_name: The name of the environment variable to set
 	# - var_value: The value of the environment variable to set
-	# - is_secret: Whether the value should be masked as secret (true/false)
+	# - is_secret: Whether the value should be masked as secret (true/false) (default: false)
+	# - verbose: Whether to output verbose information (true/false) (default: true)
 
 	local var_name="$1"
 	local var_value="$2"
@@ -26,7 +27,7 @@ set_github_env() {
 	fi
 
 	# Verbose output
-	if [ "${verbose}" = "true" ]; then
+	if [ "${verbose}" != "false" ]; then
 		if [ "${is_secret}" = "true" ]; then
 			echo "Set ${var_name} (secret)"
 		else
