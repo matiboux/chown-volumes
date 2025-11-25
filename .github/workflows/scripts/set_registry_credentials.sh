@@ -14,6 +14,8 @@ set_registry_credentials() {
 	# - IMAGES_PREFIX (optional)
 	#     The prefix to use for image names (e.g., project name)
 	#     (defaults to repository name if not set)
+	# - REPOSITORY_OWNER (required)
+	#     The owner of the repository (e.g., GitHub repository owner)
 	# - REPOSITORY_PATH (required)
 	#     The full path of the repository (e.g., GitHub repository path)
 
